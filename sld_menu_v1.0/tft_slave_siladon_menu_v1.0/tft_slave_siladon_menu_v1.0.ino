@@ -49,7 +49,7 @@ const int maxOptions = 3;
 
 String condition_name[2] = {"01 Dry", "02 Moist"};
 String side_name[2] = {"01 Front","02 Back"};
-String option_name[3] = {"01 Small", "02 Medium", "03 Large"};
+String option_name[3] = {"01 S", "02 M", "03 L"};
 
 
 void showCondition() {
@@ -130,7 +130,7 @@ void showMenu() {
     }
 
     tft.setCursor(x + 30, buttonY + 10);
-    tft.print("Option " + String(i));
+    tft.print(option_name[i-1]);
   }
 }
 
@@ -213,6 +213,7 @@ void receiveEvent() {
       // tft.print("Confirmed:");
       // tft.setCursor(20, 160);
       // tft.print(condition_name[current_condition]);
+      menuShown = false;
       menu_condition_show = false;
       delay(100);
       menu_side = true;
@@ -241,6 +242,7 @@ void receiveEvent() {
       // tft.print("Confirmed:");
       // tft.setCursor(20, 160);
       // tft.print(side_name[current_side]);
+      menu_condition_show = false;
       menu_side = false;
       delay(100);
       menuShown = true;
