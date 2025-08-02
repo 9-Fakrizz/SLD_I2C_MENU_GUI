@@ -1,8 +1,7 @@
 #include <Wire.h>
-#include <ESP32Servo.h>
 
-Servo servoMotor;
 #define SLAVE_ADDR 5
+#define ANSWERSIZE 3
 
 void write_i2c(uint8_t b) {
   Wire.beginTransmission(SLAVE_ADDR);
@@ -22,7 +21,7 @@ const int max_option = 3;
 
 void setup() {
   Wire.begin();
-  Serial.begin(115200);
+  Serial.begin(9600);
   Serial.println("Menu ready: 1=up 2=down 3=back/clear, 4=confirm");
 }
 
@@ -63,7 +62,6 @@ start_menu:
   }
 
   // --- SELECT SIDE ---
-  write_i2c(3);
   Serial.print("Select SIDE: "); Serial.println(current_side);
   while (true) {
     if (Serial.available() > 0) {
@@ -91,7 +89,7 @@ start_menu:
   }
 
   // --- SELECT OPTION ---
-  write_i2c(2);
+  //write_i2c(2);
   Serial.print("Select OPTION: "); Serial.println(current_option);
   while (true) {
     if (Serial.available() > 0) {
