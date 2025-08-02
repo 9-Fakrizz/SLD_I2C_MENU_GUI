@@ -168,29 +168,40 @@ void receiveEvent() {
     tft.fillScreen(BLACK);
     tft.setTextColor(WHITE);
     tft.setTextSize(3);
-    tft.setCursor(20, 120);
-    tft.print("Press Button");
-    tft.setCursor(20, 160);
+    tft.setCursor(20, 100);
+    tft.print("Press");
+    tft.setCursor(20, 140);
+    tft.print("Button 1");
+    tft.setCursor(20, 180);
     tft.print("to Start");
   }
   else if(read_but == "7"){
     tft.fillScreen(BLACK);
     tft.setTextColor(WHITE);
     tft.setTextSize(3);
-    tft.setCursor(20, 120);
-    tft.print("Press Button");
-    tft.setCursor(20, 160);
+    tft.setCursor(20, 100);
+    tft.print("Press");
+    tft.setCursor(20, 140);
+    tft.print("Button 1");
+    tft.setCursor(20, 180);
     tft.print("to Setup");
   } 
   else if(read_but == "6"){
     tft.fillScreen(BLACK);
     tft.setTextColor(WHITE);
     tft.setTextSize(3);
-    tft.setCursor(20, 120);
-    tft.print("Press Button");
-    tft.setCursor(20, 160);
+    tft.setCursor(20, 100);
+    tft.print("Press");
+    tft.setCursor(20, 140);
+    tft.print("Button 2");
+    tft.setCursor(20, 180);
     tft.print("to Stop");
   } 
+  if (read_but == "4") {
+    Serial.println("menu level 0");
+    menu_condition_show = true;
+    showCondition();
+  }
 
   /////// menu gui /////
 
@@ -222,6 +233,15 @@ void receiveEvent() {
       current_condition = 1;
       current_side = 1;
       currentOption = 1;
+      tft.fillScreen(BLACK);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(3);
+      tft.setCursor(20, 100);
+      tft.print("Press");
+      tft.setCursor(20, 140);
+      tft.print("Button 3");
+      tft.setCursor(20, 180);
+      tft.print("to Stop");
     }
 
   }else if(menu_side){
@@ -310,14 +330,14 @@ void receiveEvent() {
       menuShown = true;
       showMenu();
     } 
-    else if (read_but == "6") {
-      Serial.println("show status");
-      tft.fillScreen(BLACK);
-      tft.setTextColor(WHITE);
-      tft.setTextSize(3);
-      tft.setCursor(20, 100);
-      tft.print("WORKING...");
-    } 
+    // else if (read_but == "6") {
+    //   Serial.println("show status");
+    //   tft.fillScreen(BLACK);
+    //   tft.setTextColor(WHITE);
+    //   tft.setTextSize(3);
+    //   tft.setCursor(20, 100);
+    //   tft.print("WORKING...");
+    // }  
   }
 
 
