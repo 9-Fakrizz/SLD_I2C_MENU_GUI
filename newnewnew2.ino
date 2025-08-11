@@ -217,8 +217,11 @@ void loop() {
     delay(200);
   }
 
+  while(digitalRead(button_pin[2]) != HIGH){
+    Serial.println("release button 2 ...");
+  }
   while(digitalRead(button_pin[3]) != HIGH){
-    Serial.println("release button ...");
+    Serial.println("release button 3...");
   }
 
   // --- SELECT SIDE ---
@@ -244,8 +247,11 @@ void loop() {
     delay(200);
   }
 
+  while(digitalRead(button_pin[2]) != HIGH){
+    Serial.println("release button 2 ...");
+  }
   while(digitalRead(button_pin[3]) != HIGH){
-    Serial.println("release button ...");
+    Serial.println("release button 3...");
   }
   delay(200);
   // --- SELECT OPTION ---
@@ -271,8 +277,11 @@ void loop() {
     delay(200);
   }
 
+  while(digitalRead(button_pin[2]) != HIGH){
+    Serial.println("release button 2 ...");
+  }
   while(digitalRead(button_pin[3]) != HIGH){
-    Serial.println("release button ...");
+    Serial.println("release button 3...");
   }
 
   // === MENU COMPLETE ===
