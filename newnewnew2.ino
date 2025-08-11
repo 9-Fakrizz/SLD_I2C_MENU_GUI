@@ -188,6 +188,9 @@ void loop() {
       write_i2c(2);
       Serial.print("Condition: "); Serial.println(current_condition);
     } else if (digitalRead(button_pin[2]) == LOW) { // back on level 0: clear
+      while(digitalRead(button_pin[2]) != HIGH){
+        Serial.println("release button 2 ...");
+      }
       Serial.println("clearrrrrrrr");
       write_i2c(5);
       Serial.println("yellow pressed.");
@@ -217,9 +220,6 @@ void loop() {
     delay(200);
   }
 
-  while(digitalRead(button_pin[2]) != HIGH){
-    Serial.println("release button 2 ...");
-  }
   while(digitalRead(button_pin[3]) != HIGH){
     Serial.println("release button 3...");
   }
@@ -236,6 +236,9 @@ void loop() {
       write_i2c(2);
       Serial.print("Side: "); Serial.println(current_side);
     } else if (digitalRead(button_pin[2]) == LOW) { // back to previous menu
+      while(digitalRead(button_pin[2]) != HIGH){
+        Serial.println("release button 2 ...");
+      }
       menu_level = 0;
       write_i2c(5);
       goto start_menu;
@@ -247,9 +250,6 @@ void loop() {
     delay(200);
   }
 
-  while(digitalRead(button_pin[2]) != HIGH){
-    Serial.println("release button 2 ...");
-  }
   while(digitalRead(button_pin[3]) != HIGH){
     Serial.println("release button 3...");
   }
@@ -266,6 +266,9 @@ void loop() {
       write_i2c(2);
       Serial.print("Option: "); Serial.println(current_option);
     } else if (digitalRead(button_pin[2]) == LOW) { // back to previous menu
+      while(digitalRead(button_pin[2]) != HIGH){
+        Serial.println("release button 2 ...");
+      }
       menu_level = 1;
       write_i2c(5);
       goto start_menu;
@@ -277,11 +280,8 @@ void loop() {
     delay(200);
   }
 
-  while(digitalRead(button_pin[2]) != HIGH){
-    Serial.println("release button 2 ...");
-  }
   while(digitalRead(button_pin[3]) != HIGH){
-    Serial.println("release button 3...");
+    Serial.println("release button ...");
   }
 
   // === MENU COMPLETE ===
