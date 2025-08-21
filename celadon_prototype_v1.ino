@@ -47,11 +47,11 @@ unsigned long previousMillis = 0;
 const long interval = 500;
 
 // Encoder variables
-volatile int encoderCount = 0;
+volatile int encoderCount = 1;
 bool lastEncoderState = HIGH;
 
-const int PULSES_PER_90_DEGREES = 3;
-const int PULSES_PER_90_DEGREES_NEW = 2;
+const int PULSES_PER_90_DEGREES = 3; 
+const int PULSES_PER_90_DEGREES_NEW = 4;
 const int PULSES_PER_90_DEGREES_for_small = 4;
 
 
@@ -90,12 +90,13 @@ void setup() {
   pinMode(button_pin[2], INPUT_PULLUP);
   pinMode(button_pin[3], INPUT_PULLUP);
   pinMode(button_mode, INPUT_PULLUP);
+  pinMode(encoderPin, INPUT);
 
   digitalWrite(enPin, LOW);
   digitalWrite(Relay_LED_Red, LOW);
   digitalWrite(Relay_LED_Green, HIGH);
   digitalWrite(Relay_LED_Blue, HIGH);
-  digitalWrite(Relay_PumpSp, LOW);
+  digitalWrite(Relay_PumpSp, HIGH);
   digitalWrite(Relay_PumpWater, LOW);
 
   servoMotor.attach(servoPin);
@@ -127,7 +128,7 @@ void setup() {
   //  เปิด pump spray
   servoMotor.write(90);// อยู่ตำแหน่งปิด 
   delay(100);
-  digitalWrite(Relay_PumpSp, HIGH);
+  digitalWrite(Relay_PumpSp, LOW);
   digitalWrite(Relay_PumpWater, HIGH);
   delay(500);
   write_i2c(6);
@@ -136,7 +137,7 @@ void setup() {
     Serial.println("-------press for done--------");
   }
   //  ปิด pump spray
-  digitalWrite(Relay_PumpSp, LOW);
+  digitalWrite(Relay_PumpSp, HIGH);
   delay(500);
   write_i2c(8);
 
@@ -175,8 +176,11 @@ void loop() {
     current_option = 1;
 
   // --- SELECT CONDITION ---
-  digitalWrite(Relay_LED_Green, LOW);
+  delay(500);
   write_i2c(4);
+  delay(500);
+  digitalWrite(Relay_LED_Green, LOW);
+
   Serial.print("Select CONDITION: "); Serial.println(current_condition);
   while (true) {
     if (digitalRead(button_pin[0]) == LOW) { // up
@@ -199,12 +203,12 @@ void loop() {
       servoMotor.write(0);// อยู่ตำแหน่งปิด 
       delay(1500);
       digitalWrite(Relay_PumpWater, HIGH);
-      digitalWrite(Relay_PumpSp, HIGH);
+      digitalWrite(Relay_PumpSp, LOW);
       delay(500);
       while(digitalRead(button_pin[2]) != LOW){
         Serial.println("Waiting for stop yellow.");
       }
-      digitalWrite(Relay_PumpSp, LOW);
+      digitalWrite(Relay_PumpSp, HIGH);
       delay(500);
       write_i2c(4);
       delay(500);
@@ -217,7 +221,7 @@ void loop() {
       menu_level = 1;
       break;
     }
-    delay(200);
+    delay(400);
   }
 
   while(digitalRead(button_pin[3]) != HIGH){
@@ -247,7 +251,7 @@ void loop() {
       menu_level = 2;
       break;
     }
-    delay(200);
+    delay(400);
   }
 
   while(digitalRead(button_pin[3]) != HIGH){
@@ -277,7 +281,7 @@ void loop() {
       menu_level = 3;
       break;
     }
-    delay(200);
+    delay(400);
   }
 
   while(digitalRead(button_pin[3]) != HIGH){
@@ -298,10 +302,10 @@ void loop() {
   if(current_condition == 1){ //อากาศแห้ง
     if(current_side == 1){
       if(current_option == 1){
-        performSprayOperationforsmall(1, 600, 3400, 1600, 1, 5000);
+        performSprayOperation(1, 400, 3400, 1600, 1, 5000);
         }
       else if(current_option == 2){
-        performSprayOperation(2, 300, 3400, 1600, 2, 5000);
+        performSprayOperation(2, 250, 3400, 1600, 2, 5000);
         }
     
       else if(current_option == 3){
@@ -324,10 +328,10 @@ void loop() {
   if(current_condition == 2){ //อากาศชื้น
     if(current_side == 1){
       if(current_option == 1){
-        performSprayOperationforsmall(7, 600, 3400, 1600, 1, 15000);
+        performSprayOperation(7, 400, 3400, 1600, 1, 15000);
         }
       else if(current_option == 2){
-        performSprayOperation(8, 300, 3400, 1600, 2, 15000);
+        performSprayOperation(8, 250, 3400, 1600, 2, 15000);
         }
     
       else if(current_option == 3){
@@ -385,31 +389,16 @@ String receive_i2c(){
 }
 
 
-
-// ฟังก์ชันสำหรับอ่าน encoder และนับ pulse (แก้ไขใหม่)
-void readEncoder() {
-  bool currentEncoderState = digitalRead(encoderPin);
-  
-  // ตรวจจับการเปลี่ยนแปลงจาก LOW เป็น HIGH (เมื่อเจอของทึบ)
-  if (lastEncoderState != currentEncoderState) {
-    if (currentEncoderState == HIGH) {  // ตรวจจับเมื่อเจอของทึบ
-      encoderCount++;
-      Serial.print("Encoder pulse detected (solid object), count: ");
-      Serial.println(encoderCount);
-    }
-  }
-  
-  lastEncoderState = currentEncoderState;
-}
-
 // หรือถ้าต้องการให้แน่ใจว่าต้องเจอช่องสว่างก่อนจึงจะนับทึบครั้งต่อไป
 // ใช้ฟังก์ชันนี้แทน (เพิ่ม state tracking)
 
 bool canCountNext = true;  // เพิ่มตัวแปรนี้ในส่วน global variables
+bool white_start = false;
 
 void readEncoderWithDebounce() {
   bool currentEncoderState = digitalRead(encoderPin);
-  
+  Serial.println("currentEncoderState : " + String(currentEncoderState));
+
   if (lastEncoderState != currentEncoderState) {
     if (currentEncoderState == LOW && !canCountNext) {
       // เจอช่องสว่าง - อนุญาตให้นับครั้งต่อไปได้
@@ -418,9 +407,8 @@ void readEncoderWithDebounce() {
     else if (currentEncoderState == HIGH && canCountNext) {
       // เจอของทึบ และสามารถนับได้ (เพราะเพิ่งผ่านช่องสว่างมา)
       encoderCount++;
+      Serial.println("en count : " + String(encoderCount));
       canCountNext = false;  // ป้องกันการนับซ้ำ จนกว่าจะเจอช่องสว่างอีกครั้ง
-      Serial.print("Encoder pulse detected (solid object), count: ");
-      Serial.println(encoderCount);
     }
   }
   
@@ -432,6 +420,12 @@ void resetEncoderCount() {
   encoderCount = 0;
   canCountNext = true;  // รีเซ็ตสถานะการนับด้วย
   lastEncoderState = digitalRead(encoderPin);
+  if (lastEncoderState == LOW) {
+    white_start = true;
+    encoderCount = 0;
+
+  }
+
 }
 
 // ในฟังก์ชันหมุน 90 องศา ให้เปลี่ยนจาก readEncoder() เป็น readEncoderWithDebounce()
@@ -440,7 +434,7 @@ void spin_90_deg_new() {
   resetEncoderCount();
   
   // เริ่มหมุน
-  analogWrite(driveDC_PWM, 225);
+  analogWrite(driveDC_PWM, 205);
   digitalWrite(driveDC_INA, LOW);
   digitalWrite(driveDC_INB, HIGH);
   
@@ -450,7 +444,7 @@ void spin_90_deg_new() {
   }
   
   // หยุดมอเตอร์
-  analogWrite(driveDC_PWM, 0);
+  analogWrite(driveDC_PWM, 255);
   digitalWrite(driveDC_INA, HIGH);
   digitalWrite(driveDC_INB, HIGH);
   delay(500);
@@ -474,11 +468,11 @@ void spin_90_deg() {
   }
   
   // หยุดมอเตอร์
-  analogWrite(driveDC_PWM, 0);
+  analogWrite(driveDC_PWM, 255);
   digitalWrite(driveDC_INA, HIGH);
   digitalWrite(driveDC_INB, HIGH);
   delay(500);
-  
+
   Serial.println("90 degree rotation completed!");
 }
 
@@ -488,7 +482,7 @@ void spin_90_deg_2() {
   resetEncoderCount();
   
   // เริ่มหมุน
-  analogWrite(driveDC_PWM, 185);
+  analogWrite(driveDC_PWM, 205);
   digitalWrite(driveDC_INA, LOW);
   digitalWrite(driveDC_INB, HIGH);
   
@@ -498,11 +492,11 @@ void spin_90_deg_2() {
   }
   
   // หยุดมอเตอร์
-  analogWrite(driveDC_PWM, 0);
+  analogWrite(driveDC_PWM, 255);
   digitalWrite(driveDC_INA, HIGH);
   digitalWrite(driveDC_INB, HIGH);
   delay(500);
-  
+
   Serial.println("90 degree rotation completed (speed 2)!");
 }
 
@@ -511,20 +505,21 @@ void spin_90_deg_for_small() {
   resetEncoderCount();
   
   // เริ่มหมุน
-  analogWrite(driveDC_PWM, 155);
+  analogWrite(driveDC_PWM, 165);
   digitalWrite(driveDC_INA, LOW);
   digitalWrite(driveDC_INB, HIGH);
   
   // หมุนจนกว่าจะได้ 2 pulse (90 องศา)
-  while(encoderCount < PULSES_PER_90_DEGREES_for_small) {
+  while(encoderCount < PULSES_PER_90_DEGREES) {
     readEncoderWithDebounce();  // เปลี่ยนจาก readEncoder()
   }
   
   // หยุดมอเตอร์
-  analogWrite(driveDC_PWM, 0);
+  analogWrite(driveDC_PWM, 225);
   digitalWrite(driveDC_INA, HIGH);
   digitalWrite(driveDC_INB, HIGH);
-  
+  delay(500);
+
   Serial.println("90 degree rotation completed (for small)!");
 }
 
@@ -575,12 +570,12 @@ void performSprayOperation(int option, int sprayDelayMs, int stepperForwardSteps
     Serial.println("start dc and spray--------");
     
     // Start rotation platform
-    analogWrite(driveDC_PWM, 0);
+    analogWrite(driveDC_PWM, 255);
     digitalWrite(driveDC_INA, HIGH);
     digitalWrite(driveDC_INB, HIGH);
     
     // Initial spray position
-    digitalWrite(Relay_PumpSp, HIGH);
+    digitalWrite(Relay_PumpSp, LOW);
     digitalWrite(dirPin, HIGH);
     for (int R = 0; R < stepperForwardSteps; R++) {
       digitalWrite(stepPin, HIGH);
@@ -590,7 +585,7 @@ void performSprayOperation(int option, int sprayDelayMs, int stepperForwardSteps
     }
     
     // First spray cycle
-    digitalWrite(Relay_PumpSp, LOW);
+    digitalWrite(Relay_PumpSp, HIGH);
     delay(sprayDelayMs);
     digitalWrite(dirPin, LOW);
     for (int R = 0; R < stepperBackwardSteps; R++) {
@@ -606,12 +601,12 @@ void performSprayOperation(int option, int sprayDelayMs, int stepperForwardSteps
     } else if (useSmallRotation == 2){
       spin_90_deg_2();
     } else if (useSmallRotation == 3){
-      spin_90_deg_new();
+      spin_90_deg();
     }
     delay(rotationDelayMs);
     
     // Second spray cycle
-    digitalWrite(Relay_PumpSp, HIGH);
+    digitalWrite(Relay_PumpSp, LOW);
     digitalWrite(dirPin, HIGH);
     for (int R = 0; R < stepperBackwardSteps; R++) {
       digitalWrite(stepPin, HIGH);
@@ -620,7 +615,7 @@ void performSprayOperation(int option, int sprayDelayMs, int stepperForwardSteps
       delayMicroseconds(500);
     }
     
-    digitalWrite(Relay_PumpSp, LOW);
+    digitalWrite(Relay_PumpSp, HIGH);
     delay(sprayDelayMs);
     
     digitalWrite(dirPin, LOW);
@@ -637,12 +632,12 @@ void performSprayOperation(int option, int sprayDelayMs, int stepperForwardSteps
     } else if (useSmallRotation == 2){
       spin_90_deg_2();
     } else if (useSmallRotation == 3){
-      spin_90_deg_new();
+      spin_90_deg();
     }
     delay(rotationDelayMs);
 
     // th spray cycle
-    digitalWrite(Relay_PumpSp, HIGH);
+    digitalWrite(Relay_PumpSp, LOW);
     digitalWrite(dirPin, HIGH);
     for (int R = 0; R < stepperBackwardSteps; R++) {
       digitalWrite(stepPin, HIGH);
@@ -651,7 +646,7 @@ void performSprayOperation(int option, int sprayDelayMs, int stepperForwardSteps
       delayMicroseconds(500);
     }
     
-    digitalWrite(Relay_PumpSp, LOW);
+    digitalWrite(Relay_PumpSp, HIGH);
     delay(sprayDelayMs);
     
     digitalWrite(dirPin, LOW);
@@ -668,12 +663,12 @@ void performSprayOperation(int option, int sprayDelayMs, int stepperForwardSteps
     } else if (useSmallRotation == 2){
       spin_90_deg_2();
     } else if (useSmallRotation == 3){
-      spin_90_deg_new();
+      spin_90_deg();
     }
     delay(rotationDelayMs);
 
     // fo spray cycle
-    digitalWrite(Relay_PumpSp, HIGH);
+    digitalWrite(Relay_PumpSp, LOW);
     digitalWrite(dirPin, HIGH);
     for (int R = 0; R < stepperBackwardSteps; R++) {
       digitalWrite(stepPin, HIGH);
@@ -682,7 +677,7 @@ void performSprayOperation(int option, int sprayDelayMs, int stepperForwardSteps
       delayMicroseconds(500);
     }
     
-    digitalWrite(Relay_PumpSp, LOW);
+    digitalWrite(Relay_PumpSp,  HIGH);
     delay(sprayDelayMs);
     
     digitalWrite(dirPin, LOW);
@@ -694,7 +689,7 @@ void performSprayOperation(int option, int sprayDelayMs, int stepperForwardSteps
     }
     
     // Return to home position
-    digitalWrite(Relay_PumpSp, LOW);
+    digitalWrite(Relay_PumpSp, HIGH);
     delay(4500);
     while(digitalRead(limitmotor) == HIGH) {
       digitalWrite(stepPin, HIGH);
@@ -706,14 +701,11 @@ void performSprayOperation(int option, int sprayDelayMs, int stepperForwardSteps
     digitalWrite(Relay_PumpWater, LOW);
     delay(2000);
     
-    // Stop rotation platform
-    digitalWrite(driveDC_INA, LOW);
-    digitalWrite(driveDC_INB, LOW);
-    delay(500);
   }
   
   Serial.println("----------------------- DONE -----------------------");
   write_i2c(8);
+  delay(500);
   digitalWrite(Relay_LED_Blue, HIGH);
 }
 
@@ -762,7 +754,7 @@ void performSprayOperationforsmall(int option, int sprayDelayMs, int stepperForw
     Serial.println("start dc and spray--------");
     
     // Start rotation platform
-    analogWrite(driveDC_PWM, 0);
+    analogWrite(driveDC_PWM, 255);
     digitalWrite(driveDC_INA, HIGH);
     digitalWrite(driveDC_INB, HIGH);
     
@@ -778,8 +770,8 @@ void performSprayOperationforsmall(int option, int sprayDelayMs, int stepperForw
 
      // First spray cycle
     digitalWrite(Relay_PumpSp, HIGH);
-    delay(2000);
-    digitalWrite(Relay_PumpSp, LOW);
+    //delay(2000);
+    //digitalWrite(Relay_PumpSp, LOW);
     delay(sprayDelayMs);
     digitalWrite(dirPin, LOW);
     for (int R = 0; R < stepperBackwardSteps; R++) {
@@ -799,6 +791,7 @@ void performSprayOperationforsmall(int option, int sprayDelayMs, int stepperForw
     }
     delay(rotationDelayMs);
 
+    digitalWrite(Relay_PumpSp, LOW);
     digitalWrite(dirPin, HIGH);
     for (int R = 0; R < stepperBackwardSteps; R++) {
       digitalWrite(stepPin, HIGH);
@@ -808,8 +801,8 @@ void performSprayOperationforsmall(int option, int sprayDelayMs, int stepperForw
     }
     
     digitalWrite(Relay_PumpSp, HIGH);
-    delay(2000);
-    digitalWrite(Relay_PumpSp, LOW);
+    //delay(2000);
+    //digitalWrite(Relay_PumpSp, LOW);
     delay(sprayDelayMs);
     
     digitalWrite(dirPin, LOW);
@@ -864,7 +857,7 @@ void performSprayOperationforsmall(int option, int sprayDelayMs, int stepperForw
     // delay(rotationDelayMs);
   
     // Four spray cycle
-    
+    digitalWrite(Relay_PumpSp, LOW);
     digitalWrite(dirPin, HIGH);
     for (int R = 0; R < stepperBackwardSteps; R++) {
       digitalWrite(stepPin, HIGH);
@@ -873,9 +866,9 @@ void performSprayOperationforsmall(int option, int sprayDelayMs, int stepperForw
       delayMicroseconds(500);
     }
     
+    // digitalWrite(Relay_PumpSp, HIGH);
+    // delay(2000);
     digitalWrite(Relay_PumpSp, HIGH);
-    delay(2000);
-    digitalWrite(Relay_PumpSp, LOW);
     delay(sprayDelayMs);
     
     digitalWrite(dirPin, LOW);
@@ -887,7 +880,7 @@ void performSprayOperationforsmall(int option, int sprayDelayMs, int stepperForw
     }
     
     // Return to home position
-    digitalWrite(Relay_PumpSp, LOW);
+    digitalWrite(Relay_PumpSp, HIGH);
     delay(4500);
     while(digitalRead(limitmotor) == HIGH) {
       digitalWrite(stepPin, HIGH);
@@ -899,14 +892,11 @@ void performSprayOperationforsmall(int option, int sprayDelayMs, int stepperForw
     digitalWrite(Relay_PumpWater, LOW);
     delay(2000);
     
-    // Stop rotation platform
-    digitalWrite(driveDC_INA, LOW);
-    digitalWrite(driveDC_INB, LOW);
-    delay(500);
   }
   
   Serial.println("----------------------- DONE -----------------------");
   write_i2c(8);
+  delay(500);
   digitalWrite(Relay_LED_Blue, HIGH);
 }
 
@@ -955,7 +945,7 @@ void performSprayBackOperation(int option, int stepperForwardSteps, int stepperB
     Serial.println("start dc and spray--------");
     
     // Start rotation platform
-    analogWrite(driveDC_PWM, 0);
+    analogWrite(driveDC_PWM, 255);
     digitalWrite(driveDC_INA, HIGH);
     digitalWrite(driveDC_INB, HIGH);
     
@@ -967,7 +957,7 @@ void performSprayBackOperation(int option, int stepperForwardSteps, int stepperB
       digitalWrite(stepPin, LOW);
       delayMicroseconds(500);
     }
-    digitalWrite(Relay_PumpSp, HIGH);
+    digitalWrite(Relay_PumpSp, LOW);
     delay(1000);
     // First spray cycle
     digitalWrite(dirPin, LOW);
@@ -977,7 +967,7 @@ void performSprayBackOperation(int option, int stepperForwardSteps, int stepperB
       digitalWrite(stepPin, LOW);
       delayMicroseconds(500);
     }
-    digitalWrite(Relay_PumpSp, LOW);
+    digitalWrite(Relay_PumpSp, HIGH);
     digitalWrite(Relay_PumpWater, LOW);
     // First rotation
     if (useSmallRotation == 1) {
@@ -999,7 +989,7 @@ void performSprayBackOperation(int option, int stepperForwardSteps, int stepperB
       digitalWrite(stepPin, LOW);
       delayMicroseconds(500);
     }
-    digitalWrite(Relay_PumpSp, HIGH);
+    digitalWrite(Relay_PumpSp, LOW);
     delay(1000);
     digitalWrite(dirPin, LOW);
     for (int R = 0; R < stepperBackwardSteps; R++) {
@@ -1009,7 +999,7 @@ void performSprayBackOperation(int option, int stepperForwardSteps, int stepperB
       delayMicroseconds(500);
     }
     
-    digitalWrite(Relay_PumpSp, LOW);
+    digitalWrite(Relay_PumpSp, HIGH);
     digitalWrite(Relay_PumpWater, LOW);
     // 2 rotation
     if (useSmallRotation == 1) {
@@ -1032,7 +1022,7 @@ void performSprayBackOperation(int option, int stepperForwardSteps, int stepperB
       digitalWrite(stepPin, LOW);
       delayMicroseconds(500);
     }
-    digitalWrite(Relay_PumpSp, HIGH);
+    digitalWrite(Relay_PumpSp, LOW);
     delay(1000);
     digitalWrite(dirPin, LOW);
     for (int R = 0; R < stepperBackwardSteps; R++) {
@@ -1042,7 +1032,7 @@ void performSprayBackOperation(int option, int stepperForwardSteps, int stepperB
       delayMicroseconds(500);
     }
     
-    digitalWrite(Relay_PumpSp, LOW);
+    digitalWrite(Relay_PumpSp, HIGH);
     digitalWrite(Relay_PumpWater, LOW);
     // 3 rotation
     if (useSmallRotation == 1) {
@@ -1066,7 +1056,7 @@ void performSprayBackOperation(int option, int stepperForwardSteps, int stepperB
       delayMicroseconds(500);
     }
 
-    digitalWrite(Relay_PumpSp, HIGH);
+    digitalWrite(Relay_PumpSp, LOW);
     delay(1000);
     digitalWrite(dirPin, LOW);
     for (int R = 0; R < stepperBackwardSteps + 300; R++) {
@@ -1077,7 +1067,7 @@ void performSprayBackOperation(int option, int stepperForwardSteps, int stepperB
     }
 
     // Return to home position
-    digitalWrite(Relay_PumpSp, LOW);
+    digitalWrite(Relay_PumpSp, HIGH);
     delay(4500);
     while(digitalRead(limitmotor) == HIGH) {
       digitalWrite(stepPin, HIGH);
@@ -1088,14 +1078,167 @@ void performSprayBackOperation(int option, int stepperForwardSteps, int stepperB
     
     digitalWrite(Relay_PumpWater, LOW);
     delay(2000);
-    
-    // Stop rotation platform
-    digitalWrite(driveDC_INA, HIGH);
-    digitalWrite(driveDC_INB, HIGH);
-    delay(500);
+
   }
   
   Serial.println("----------------------- DONE -----------------------");
   write_i2c(8);
+  delay(500);
+  digitalWrite(Relay_LED_Blue, HIGH);
+}
+
+void performSprayBackOperation_for_small(int option, int stepperForwardSteps, int stepperBackwardSteps, 
+                          int useSmallRotation, int rotationDelayMs) {
+  Serial.println("Option " + String(option));
+  digitalWrite(Relay_LED_Blue, LOW);
+  digitalWrite(Relay_LED_Green, HIGH);
+  write_i2c(9);
+  delay(1000);
+  
+  // Turn on water pump
+  digitalWrite(Relay_PumpWater, HIGH);
+  delay(1000);
+  
+  if (useSmallRotation == 1) {
+      spin_90_deg_for_small();
+    } else if (useSmallRotation == 2){
+      spin_90_deg_2();
+    } else if (useSmallRotation == 3){
+      spin_90_deg();
+    }
+
+  // Move stepper to home position
+  digitalWrite(dirPin, LOW);
+  while(digitalRead(limitmotor) == HIGH) {
+    digitalWrite(stepPin, HIGH);
+    delayMicroseconds(500);
+    digitalWrite(stepPin, LOW);
+    delayMicroseconds(500);
+  }
+  Serial.println("start stepper--------");
+  delay(1000);
+
+  // Check if mode button is pressed
+  if (digitalRead(button_mode) == 1) {
+    // Move stepper away from home position
+    digitalWrite(dirPin, HIGH);
+    while(digitalRead(limitmotor) == HIGH) {
+      digitalWrite(stepPin, HIGH);
+      delayMicroseconds(500);
+      digitalWrite(stepPin, LOW);
+      delayMicroseconds(500);
+    }
+
+    Serial.println("start dc and spray--------");
+    
+    // Start rotation platform
+    analogWrite(driveDC_PWM, 255);
+    digitalWrite(driveDC_INA, HIGH);
+    digitalWrite(driveDC_INB, HIGH);
+    
+    // Initial spray position
+    digitalWrite(dirPin, HIGH);
+    for (int R = 0; R < stepperForwardSteps; R++) {
+      digitalWrite(stepPin, HIGH);
+      delayMicroseconds(500);
+      digitalWrite(stepPin, LOW);
+      delayMicroseconds(500);
+    }
+    digitalWrite(Relay_PumpSp, LOW);
+    delay(1000);
+    // First spray cycle
+    digitalWrite(dirPin, LOW);
+    for (int R = 0; R < stepperBackwardSteps; R++) {
+      digitalWrite(stepPin, HIGH);
+      delayMicroseconds(500);
+      digitalWrite(stepPin, LOW);
+      delayMicroseconds(500);
+    }
+    digitalWrite(Relay_PumpSp, HIGH);
+    digitalWrite(Relay_PumpWater, LOW);
+    // First rotation
+    if (useSmallRotation == 1) {
+      spin_90_deg_for_small();
+    } else if (useSmallRotation == 2){
+      spin_90_deg_2();
+    } else if (useSmallRotation == 3){
+      spin_90_deg();
+    }
+    delay(rotationDelayMs);
+    digitalWrite(Relay_PumpWater, HIGH);
+    delay(1000);
+
+
+    // Third spray cycle
+    
+    digitalWrite(dirPin, HIGH);
+    for (int R = 0; R < stepperBackwardSteps; R++) {
+      digitalWrite(stepPin, HIGH);
+      delayMicroseconds(500);
+      digitalWrite(stepPin, LOW);
+      delayMicroseconds(500);
+    }
+    digitalWrite(Relay_PumpSp, LOW);
+    delay(1000);
+    digitalWrite(dirPin, LOW);
+    for (int R = 0; R < stepperBackwardSteps; R++) {
+      digitalWrite(stepPin, HIGH);
+      delayMicroseconds(500);
+      digitalWrite(stepPin, LOW);
+      delayMicroseconds(500);
+    }
+    
+    digitalWrite(Relay_PumpSp, HIGH);
+    digitalWrite(Relay_PumpWater, LOW);
+    // 3 rotation
+    if (useSmallRotation == 1) {
+      spin_90_deg_for_small();
+    } else if (useSmallRotation == 2){
+      spin_90_deg_2();
+    } else if (useSmallRotation == 3){
+      spin_90_deg();
+    }
+    delay(rotationDelayMs);
+    digitalWrite(Relay_PumpWater, HIGH);
+    delay(1000);
+    
+    // Four spray cycle
+    
+    digitalWrite(dirPin, HIGH);
+    for (int R = 0; R < stepperBackwardSteps; R++) {
+      digitalWrite(stepPin, HIGH);
+      delayMicroseconds(500);
+      digitalWrite(stepPin, LOW);
+      delayMicroseconds(500);
+    }
+
+    digitalWrite(Relay_PumpSp, LOW);
+    delay(1000);
+    digitalWrite(dirPin, LOW);
+    for (int R = 0; R < stepperBackwardSteps + 300; R++) {
+      digitalWrite(stepPin, HIGH);
+      delayMicroseconds(500);
+      digitalWrite(stepPin, LOW);
+      delayMicroseconds(500);
+    }
+
+    // Return to home position
+    digitalWrite(Relay_PumpSp, HIGH);
+    delay(4500);
+    while(digitalRead(limitmotor) == HIGH) {
+      digitalWrite(stepPin, HIGH);
+      delayMicroseconds(500);
+      digitalWrite(stepPin, LOW);
+      delayMicroseconds(500);
+    }
+    
+    digitalWrite(Relay_PumpWater, LOW);
+    delay(2000);
+
+  }
+  
+  Serial.println("----------------------- DONE -----------------------");
+  write_i2c(8);
+  delay(500);
   digitalWrite(Relay_LED_Blue, HIGH);
 }
